@@ -6,7 +6,7 @@ import scipy
 
 SOUND_SPEED = 343
     
-def music(samples, n_sources):
+def music(samples, n_sources, mic_distance, main_frequency):
     M = len(samples)
     
     samples = (samples.T - samples.mean(axis=1).T).T
@@ -22,17 +22,21 @@ def music(samples, n_sources):
     signal_eigenvalues, signal_eigenvectors = eigenvalues[-n_sources :], eigenvectors[:, -n_sources :]
     noise_eigenvalues, noise_eigenvectors = eigenvalues[: -n_sources], eigenvectors[:, : -n_sources]
     
-    return signal_eigenvalues, signal_eigenvectors, noise_eigenvalues, noise_eigenvectors
+    return mic_array_spectrum_function(noise_eigenvectors, mic_distance, main_frequency)
 
 
-def compute_stfd(samples, nperseg):
+def compute_stfd(samples, nperseg, normalized_freq_range):
     sources_stft = []
     
     # Iterate over every microphone    
     for samples_channel in samples:
         freq, time_intervals, stft = scipy.signal.stft(samples_channel, nperseg=nperseg, return_onesided=True)
+        selected_freq_id = np.argwhere((normalized_freq_range[0] <= freq) & (freq <= normalized_freq_range[1])).flatten()
+        stft = stft[selected_freq_id, :]
+        
         sources_stft.append(stft)
         
+
     sources_stft = np.array(sources_stft).transpose((1, 2, 0))
     
     print("Shape of sources STFT:", sources_stft.shape)
@@ -48,13 +52,13 @@ def music_with_frequency(samples, n_sources, fs, mics_coords, segment_duration=0
     if freq_range is None:
         freq_range = [0, fs]
     freq_range = np.array(freq_range)
+    normalized_freq_range = freq_range / fs
     
     # Number of samples to span the segment duration
     nperseg = segment_duration * fs
-        
-    samples = (samples.T - samples.mean(axis=1).T).T
     
-    stfd = compute_stfd(samples, nperseg)
+    samples = (samples.T - samples.mean(axis=1).T).T
+    stfd = compute_stfd(samples, nperseg, normalized_freq_range)
     
     eigenvalues, eigenvectors = np.linalg.eigh(stfd)
     
@@ -65,7 +69,10 @@ def music_with_frequency(samples, n_sources, fs, mics_coords, segment_duration=0
     
     print("Shape of noise eigenvectors:", noise_eigenvectors.shape)
     
-    return general_spectrum_function(noise_eigenvectors, mics_coords.T, (np.mean(freq_range) / nperseg) * fs)
+    # Assume main frequency is the middle of the frequency range
+    main_frequency = (np.mean(freq_range) / nperseg) * fs
+
+    return general_spectrum_function(noise_eigenvectors, mics_coords.T, main_frequency)
 
 
 def general_spectrum_function(noise_eigenvectors, mic_locations, main_frequency):
@@ -81,7 +88,7 @@ def general_spectrum_function(noise_eigenvectors, mic_locations, main_frequency)
     return helper
 
 
-def mic_array_spectrum_function(noise_eigenvectors, mic_distance, wavelength):    
+def mic_array_spectrum_function(noise_eigenvectors, mic_distance, wavelength=1):
     M = noise_eigenvectors.shape[0]
     def helper(sin_value):
         phi = 2 * np.pi * mic_distance * sin_value / wavelength
