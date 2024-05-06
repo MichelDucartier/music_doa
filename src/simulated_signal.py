@@ -1,4 +1,5 @@
 import numpy as np
+from music import SOUND_SPEED
 
 def narrowband_signal(k, w0):    
     def helper(t):
@@ -7,11 +8,14 @@ def narrowband_signal(k, w0):
         return rng.randn() * np.exp(-1j * w0 * t)
     return helper
 
-def received_signal(thetas, narrowband_signals, mic_index, mic_distance=0.2, noise_var=0, wavelength=1):
+
+def received_signal(thetas, narrowband_signals, mic_index, main_frequency, mic_distance=0.2, noise_var=0):
+    wavelength = SOUND_SPEED / main_frequency
+    
     def helper(t):
         signal = 0
         for theta, narrowband in zip(thetas, narrowband_signals):
-            phase = np.exp(-2j * np.pi * (mic_index - 1) * mic_distance * np.sin(theta) / wavelength)
+            phase = np.exp(2j * np.pi * (mic_index - 1) * mic_distance * np.sin(theta) / wavelength)
             signal += narrowband(t) * phase
             
         return signal + np.random.normal(size=2, scale=noise_var).view(np.complex128)[0]

@@ -6,7 +6,7 @@ import scipy
 
 SOUND_SPEED = 343
     
-def music(samples, n_sources, mic_distance, main_frequency):
+def music(samples, n_sources, mic_coords, main_frequency):
     M = len(samples)
     
     samples = (samples.T - samples.mean(axis=1).T).T
@@ -22,7 +22,7 @@ def music(samples, n_sources, mic_distance, main_frequency):
     signal_eigenvalues, signal_eigenvectors = eigenvalues[-n_sources :], eigenvectors[:, -n_sources :]
     noise_eigenvalues, noise_eigenvectors = eigenvalues[: -n_sources], eigenvectors[:, : -n_sources]
     
-    return mic_array_spectrum_function(noise_eigenvectors, mic_distance, main_frequency)
+    return general_spectrum_function(noise_eigenvectors, mic_coords.T, main_frequency)
 
 
 def compute_stfd(samples, nperseg, normalized_freq_range):
@@ -80,21 +80,8 @@ def general_spectrum_function(noise_eigenvectors, mic_locations, main_frequency)
     
     def helper(theta):
         a = np.array([np.cos(theta), np.sin(theta)])
-        atheta = np.exp(1j * 2 * np.pi / wavelength * np.dot(mic_locations, a))
+        atheta = np.exp(2j * np.pi / wavelength * np.dot(mic_locations, a))
         temp = atheta.conj() @ noise_eigenvectors
-        
-        return 1 / np.linalg.norm(temp)**2
-    
-    return helper
-
-
-def mic_array_spectrum_function(noise_eigenvectors, mic_distance, wavelength=1):
-    M = noise_eigenvectors.shape[0]
-    def helper(sin_value):
-        phi = 2 * np.pi * mic_distance * sin_value / wavelength
-        x = [np.exp(-1j*phi)]
-        a = np.vander(x, M, increasing=True)
-        temp = a.conj() @ noise_eigenvectors
         
         return 1 / np.linalg.norm(temp)**2
     
@@ -112,3 +99,17 @@ def extract_frequencies(spectrum, n_sources, input_range, resolution=10000):
     estimated_freq = peak_indices[indices]
     
     return (estimated_freq / resolution) * (input_range[1] - input_range[0]) + input_range[0]
+
+
+@DeprecationWarning
+def mic_array_spectrum_function(noise_eigenvectors, mic_distance, wavelength=1):
+    M = noise_eigenvectors.shape[0]
+    def helper(sin_value):
+        phi = 2 * np.pi * mic_distance * sin_value / wavelength
+        x = [np.exp(-1j*phi)]
+        a = np.vander(x, M, increasing=True)
+        temp = a.conj() @ noise_eigenvectors
+        
+        return 1 / np.linalg.norm(temp)**2
+    
+    return helper
