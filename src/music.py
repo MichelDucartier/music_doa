@@ -99,7 +99,7 @@ def general_spectrum_function(noise_eigenvectors, mic_locations, main_frequency)
     def helper(theta):
         a = np.array([np.cos(theta), np.sin(theta)])
         atheta = np.exp(-2j * np.pi / wavelength * np.dot(mic_locations, a))
-        temp = atheta.conj() @ noise_eigenvectors
+        temp = noise_eigenvectors.T.conj() @ atheta
         
         return 1 / np.linalg.norm(temp)**2
     
