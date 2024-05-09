@@ -7,6 +7,21 @@ import scipy
 SOUND_SPEED = 343
     
 def music(samples, n_sources, mic_coords, main_frequency, correlated=False):
+    """
+    Computes and returns the estimated spatial spectrum by computing the eigendecomposition of the covariance matrix
+    of the samples
+
+    Parameters:
+    samples : matrix of shape (number of microphones) x (number of times sampled) holding all the information about
+              the received signals of each microphone
+    n_sources : number of sources
+    mic_coords : matrix of shape 2 x (number of microphones) x with the coordinates of each microphone
+    main_frequency: main frequency
+    correlated : whether or not the signals sent by the sources are correlated
+
+    Returns:
+    The estimated spatial spectrum
+    """
     M = len(samples)
     
     samples = (samples.T - samples.mean(axis=1).T).T
@@ -31,6 +46,18 @@ def music(samples, n_sources, mic_coords, main_frequency, correlated=False):
 
 
 def compute_stfd(samples, nperseg, normalized_freq_range):
+    """TODO NOT SURE
+    Computes and returns the STFT of the given samples in a certain frequency range
+
+    Parameters:
+    samples : matrix of shape (number of microphones) x (number of times sampled) holding all the information about
+              the received signals of each microphone
+    nperseg : length of each segment
+    normalized_freq_range : normalized frequency range
+
+    Returns:
+    The STFT of the samples
+    """
     sources_stft = []
     
     # Iterate over every microphone    
@@ -57,6 +84,23 @@ def compute_stfd(samples, nperseg, normalized_freq_range):
 
 def music_with_frequency(samples, n_sources, fs, mics_coords, segment_duration=None, freq_range=None,
                          correlated=False):
+    """todo
+    Computes and returns the estimated spatial spectrum by computing the eigendecomposition of the covariance matrix
+    of the samples
+
+    Parameters:
+    samples : matrix of shape (number of microphones) x (number of times sampled) holding all the information about
+              the received signals of each microphone
+    n_sources : number of sources
+    fs : sampling frequency
+    mic_coords : matrix of shape 2 x (number of microphones) x with the coordinates of each microphone
+    segment_duration: duration in time of each segment
+    freq_range : range of frequency to consider for the STFT (??? todo)
+    correlated : whether or not the signals sent by the sources are correlated
+
+    Returns:
+    The estimated spatial spectrum
+    """
     if freq_range is None:
         freq_range = [0, fs]
 
@@ -94,12 +138,24 @@ def music_with_frequency(samples, n_sources, fs, mics_coords, segment_duration=N
 
 
 def general_spectrum_function(noise_eigenvectors, mic_locations, main_frequency):
+    """
+    Computes and returns the a function representing the estimated spatial spectrum to be evaluated at values of theta
+    using the noise eigenvectors of the covariance matrix of the samples
+
+    Parameters:
+    noise_eigenvectors : noise eigenvectors in columns of a matrix
+    mic_locations : coordinates of the microphones
+    main_frequency : main frequency
+    
+    Returns:
+    The estimated spatial spectrum as a function of theta
+    """
     wavelength = SOUND_SPEED / main_frequency
     
     def helper(theta):
         a = np.array([np.cos(theta), np.sin(theta)])
         atheta = np.exp(-2j * np.pi / wavelength * np.dot(mic_locations, a))
-        temp = noise_eigenvectors.T.conj() @ atheta
+        temp = atheta.conj() @ noise_eigenvectors #noise_eigenvectors.T.conj() @ atheta also works
         
         return 1 / np.linalg.norm(temp)**2
     
@@ -107,6 +163,18 @@ def general_spectrum_function(noise_eigenvectors, mic_locations, main_frequency)
 
 
 def extract_frequencies(spectrum, n_sources, input_range, resolution=10000):
+    """
+    Extracts the frequencies at which the spectrum function has its peaks
+
+    Parameters:
+    spectrum : the spatial spectrum, function of theta
+    n_sources: number of sources
+    input_range : input range of theta
+    resolution : resolution for the peaks (does that make sense???? todo)
+    
+    Returns:
+    Frequencies at which the spectrum function peaks
+    """
     X = np.linspace(input_range[0], input_range[1], resolution)
     Y = np.array([spectrum(x) for x in X])
     
@@ -121,6 +189,18 @@ def extract_frequencies(spectrum, n_sources, input_range, resolution=10000):
 
 @DeprecationWarning
 def mic_array_spectrum_function(noise_eigenvectors, mic_distance, wavelength=1):
+    """
+    Computes and returns the a function representing the estimated spatial spectrum to be evaluated at values of sin(theta)
+    using the noise eigenvectors of the covariance matrix of the samples
+
+    Parameters:
+    noise_eigenvectors : noise eigenvectors in columns of a matrix
+    mic_locations : coordinates of the microphones
+    main_frequency : main frequency
+    
+    Returns:
+    The estimated spatial spectrum as a function of sin(theta)
+    """
     M = noise_eigenvectors.shape[0]
     def helper(sin_value):
         phi = 2 * np.pi * mic_distance * sin_value / wavelength
