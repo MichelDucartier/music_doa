@@ -15,7 +15,7 @@ def received_signal(thetas, narrowband_signals, mic_index, main_frequency, mic_d
     def helper(t):
         signal = 0
         for theta, narrowband in zip(thetas, narrowband_signals):
-            phase = np.exp(2j * np.pi * (mic_index - 1) * mic_distance * np.sin(theta) / wavelength)
+            phase = np.exp(-2j * np.pi * (mic_index - 1) * mic_distance * np.sin(theta) / wavelength)
             signal += narrowband(t) * phase
             
         return signal + np.random.normal(size=2, scale=noise_var).view(np.complex128)[0]
