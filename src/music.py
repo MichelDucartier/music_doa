@@ -55,23 +55,28 @@ def compute_stfd(samples, nperseg, normalized_freq_range):
     return stfd
 
 
-def music_with_frequency(samples, n_sources, fs, mics_coords, segment_duration=0.5, freq_range=None,
+def music_with_frequency(samples, n_sources, fs, mics_coords, segment_duration=None, freq_range=None,
                          correlated=False):
     if freq_range is None:
         freq_range = [0, fs]
-    
+
+    if segment_duration is None:
+        nperseg = len(samples)
+    else:
+        # Number of samples to span the segment duration
+        nperseg = segment_duration * fs
+
     freq_range = np.array(freq_range)
     normalized_freq_range = freq_range / fs
     
-    # Number of samples to span the segment duration
-    nperseg = segment_duration * fs
     
     samples = (samples.T - samples.mean(axis=1).T).T
     stfd = compute_stfd(samples, nperseg, normalized_freq_range)
 
     if correlated:
         J = np.flip(np.eye(mics_coords.shape[1]), axis=1)
-        stfd = stfd + np.dot(J, np.dot(stfd.conj(), J))
+        stfd_flipped = compute_stfd(J @ samples.conj(), nperseg, normalized_freq_range)
+        stfd = (stfd + stfd_flipped) / 2
     
     eigenvalues, eigenvectors = np.linalg.eigh(stfd)
     
