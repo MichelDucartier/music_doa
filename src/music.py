@@ -75,8 +75,8 @@ def music_with_frequency(samples, n_sources, fs, mics_coords, segment_duration=N
 
     if correlated:
         J = np.flip(np.eye(mics_coords.shape[1]), axis=1)
-        stfd_flipped = compute_stfd(J @ samples.conj(), nperseg, normalized_freq_range)
-        stfd = (stfd + stfd_flipped) / 2
+        # stfd_flipped = compute_stfd(J @ samples.conj(), nperseg, normalized_freq_range)
+        stfd = (stfd + (J @ stfd.conj() @ J)) / 2
     
     eigenvalues, eigenvectors = np.linalg.eigh(stfd)
     

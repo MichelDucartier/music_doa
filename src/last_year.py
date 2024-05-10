@@ -41,3 +41,29 @@ def music(X, f, P, M, locations):
     return Pmusic, theta
 
 
+def my_musicdoa_improved(X, M, P, d, wavelen, resscale):
+    # X is M*N array, where N is number of snapshots
+    
+    X0 = (X.T - X.T.mean(axis=0)).T 
+    R = np.dot(X0, X0.conj().T)         # R = XX'
+    #--- modified code -----------------
+    J = np.flip(np.eye(M), axis=1)
+    R = R + np.dot(J, np.dot(R.conj(), J))
+    #-----------------------------------
+    n, v = np.linalg.eig(R)         
+    ids = np.abs(n).argsort()[:(M-P)] # find the smallest eignvalues
+    En = v[:,ids]
+    Ren = np.dot(En, En.conj().T)     # Ren = EnEn'
+
+    theta = np.arange(-90, 90, 0.5)
+    L = np.size(theta)
+    a = np.exp(-1j*2*np.pi*d/wavelen*np.kron(np.arange(M), np.sin(theta * np.pi/180)).reshape(M, L))
+    Pmusic = np.zeros(L)
+    for i in range(L):
+        Pmusic[i] = 1/abs(np.dot(a[:, i].conj().T, np.dot(Ren, a[:, i]))) # Pmusic = a(theta)'*En*En'*a(theta)
+
+    # spatial spectrum function
+    if resscale=="log":
+        Pmusic = 10*np.log10(Pmusic / np.max(Pmusic))    
+    
+    return Pmusic, theta
