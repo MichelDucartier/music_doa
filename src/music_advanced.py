@@ -43,9 +43,26 @@ def compute_stfd(samples, nperseg, normalized_freq_range):
     
     return stfd
 
+
+def averaged_spectrum(spectrum_list):
+    """
+    Average the spectrum of a list of spectrum functions
+
+    Parameters:
+    spectrum_list : list of spectrum functions
+
+    Returns:
+    The averaged spectrum
+    """
+    def helper(t):
+        return np.mean([spectrum(t) for spectrum in spectrum_list])
+
+    return helper
+
+
 def music_with_frequency(samples, n_sources, fs, mics_coords, segment_duration=None, freq_range=None,
-                         correlated=False):
-    """todo
+                         correlated=False, freq_resolution=50):
+    """TODO
     Computes and returns the estimated spatial spectrum by computing the eigendecomposition of the covariance matrix
     of the samples
 
@@ -92,7 +109,10 @@ def music_with_frequency(samples, n_sources, fs, mics_coords, segment_duration=N
     
     print("Shape of noise eigenvectors:", noise_eigenvectors.shape)
     
-    # Assume main frequency is the middle of the frequency range
-    main_frequency = (np.mean(freq_range) / nperseg) * fs
-
-    return general_spectrum_function(noise_eigenvectors, mics_coords.T, main_frequency)
+    # Average the spectrum over the frequencies of interest
+    spectrums = []
+    for freq in freq_range:
+        main_frequency = (freq / nperseg) * fs
+        spectrums.append(general_spectrum_function(noise_eigenvectors, mics_coords.T, main_frequency))
+    
+    return averaged_spectrum(spectrums)
