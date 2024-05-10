@@ -75,6 +75,7 @@ def music_with_frequency(samples, n_sources, fs, mics_coords, segment_duration=N
     segment_duration: duration in time of each segment
     freq_range : range of frequency to consider for the STFT (??? todo)
     correlated : whether or not the signals sent by the sources are correlated
+    freq_resolution : number of frequencies to consider
 
     Returns:
     The estimated spatial spectrum
@@ -111,7 +112,10 @@ def music_with_frequency(samples, n_sources, fs, mics_coords, segment_duration=N
     
     # Average the spectrum over the frequencies of interest
     spectrums = []
-    for freq in freq_range:
+    for freq in range(freq_range[0], freq_range[1], freq_resolution):
+        if freq == 0:
+            continue
+        
         main_frequency = (freq / nperseg) * fs
         spectrums.append(general_spectrum_function(noise_eigenvectors, mics_coords.T, main_frequency))
     
