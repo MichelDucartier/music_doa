@@ -15,7 +15,7 @@ def music(samples, n_sources, mic_coords, main_frequency, correlated=False):
     samples : matrix of shape (number of microphones) x (number of times sampled) holding all the information about
               the received signals of each microphone
     n_sources : number of sources
-    mic_coords : matrix of shape 2 x (number of microphones) x with the coordinates of each microphone
+    mic_coords : matrix of shape 2 x (number of microphones) containing coordinates of each microphone
     main_frequency: main frequency
     correlated : whether or not the signals sent by the sources are correlated
 
@@ -78,7 +78,7 @@ def extract_frequencies(spectrum, n_sources, input_range, resolution=10000):
     spectrum : the spatial spectrum, function of theta
     n_sources: number of sources
     input_range : input range of theta
-    resolution : resolution for the peaks (does that make sense???? todo)
+    resolution : number of points to evaluate the spectrum function
     
     Returns:
     Frequencies at which the spectrum function peaks
@@ -94,28 +94,3 @@ def extract_frequencies(spectrum, n_sources, input_range, resolution=10000):
     
     return (estimated_freq / resolution) * (input_range[1] - input_range[0]) + input_range[0]
 
-
-@DeprecationWarning
-def mic_array_spectrum_function(noise_eigenvectors, mic_distance, wavelength=1):
-    """
-    Computes and returns the a function representing the estimated spatial spectrum to be evaluated at values of sin(theta)
-    using the noise eigenvectors of the covariance matrix of the samples
-
-    Parameters:
-    noise_eigenvectors : noise eigenvectors in columns of a matrix
-    mic_locations : coordinates of the microphones
-    main_frequency : main frequency
-    
-    Returns:
-    The estimated spatial spectrum as a function of sin(theta)
-    """
-    M = noise_eigenvectors.shape[0]
-    def helper(sin_value):
-        phi = 2 * np.pi * mic_distance * sin_value / wavelength
-        x = [np.exp(-1j*phi)]
-        a = np.vander(x, M, increasing=True)
-        temp = a.conj() @ noise_eigenvectors
-        
-        return 1 / np.linalg.norm(temp)**2
-    
-    return helper

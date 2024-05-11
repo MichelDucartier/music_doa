@@ -8,17 +8,17 @@ from music import general_spectrum_function
 SOUND_SPEED = 343
     
 def compute_stfd(samples, nperseg, normalized_freq_range):
-    """TODO NOT SURE
-    Computes and returns the STFT of the given samples in a certain frequency range
+    """
+    Compute the space-time-frequency distribution of the samples
 
     Parameters:
     samples : matrix of shape (number of microphones) x (number of times sampled) holding all the information about
               the received signals of each microphone
-    nperseg : length of each segment
-    normalized_freq_range : normalized frequency range
+    nperseg : number of samples per segment for the STFT
+    normalized_freq_range : range of frequency to consider for the STFT (normalized between 0 and 1)
 
     Returns:
-    The STFT of the samples
+    The space-time-frequency distribution of the samples
     """
     sources_stft = []
     
@@ -62,7 +62,7 @@ def averaged_spectrum(spectrum_list):
 
 def music_with_frequency(samples, n_sources, fs, mics_coords, segment_duration=None, freq_range=None,
                          correlated=False, freq_resolution=50):
-    """TODO
+    """
     Computes and returns the estimated spatial spectrum by computing the eigendecomposition of the covariance matrix
     of the samples
 
@@ -71,9 +71,9 @@ def music_with_frequency(samples, n_sources, fs, mics_coords, segment_duration=N
               the received signals of each microphone
     n_sources : number of sources
     fs : sampling frequency
-    mic_coords : matrix of shape 2 x (number of microphones) x with the coordinates of each microphone
+    mic_coords : matrix of shape 2 x (number of microphones) containing coordinates of each microphone
     segment_duration: duration in time of each segment
-    freq_range : range of frequency to consider for the STFT (??? todo)
+    freq_range : range of frequency to consider for the STFT
     correlated : whether or not the signals sent by the sources are correlated
     freq_resolution : number of frequencies to consider
 
@@ -98,8 +98,7 @@ def music_with_frequency(samples, n_sources, fs, mics_coords, segment_duration=N
 
     if correlated:
         J = np.flip(np.eye(mics_coords.shape[1]), axis=1)
-        stfd_flipped = compute_stfd(J @ samples.conj(), nperseg, normalized_freq_range)
-        stfd = (stfd + stfd_flipped) / 2
+        stfd = (stfd + (J @ stfd@ J)) / 2
     
     eigenvalues, eigenvectors = np.linalg.eigh(stfd)
     
