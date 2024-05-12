@@ -35,7 +35,7 @@ def load_examples(downsample_ratio=10):
     for file in os.listdir(directory):
         filename = os.fsdecode(file)
         if filename.endswith(".wav"): 
-            wav_name = os.path.join(EXAMPLES_DIRECTORY, filename)
+            wav_name = os.path.join(directory, filename)
             fs, data = wavfile.read(wav_name)
             data = data[::downsample_ratio]
 
