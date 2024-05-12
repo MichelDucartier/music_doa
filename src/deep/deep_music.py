@@ -80,7 +80,7 @@ class DeepMUSIC(nn.Module):
         samples = ((samples.T - torch.mean(samples, dim=1).T) / torch.std(samples, dim=1).T).T
         fft = torch.fft.fft(samples)
         
-        main_frequency = torch.argmax(fft[: len(fft) // 2]) * self.conf["fs"] / len(fft)
+        main_frequency = torch.argmax(torch.norm(fft[: len(fft) // 2])) * self.conf["fs"] / len(fft)
 
         # Forward pass through the recurrent neural network
         output = self.gru(samples)
