@@ -8,20 +8,31 @@ from tqdm import tqdm
 from pathlib import Path
 import datasets
 from datasets import Dataset, Audio
+import requests, zipfile, io
 
 
-
-EXAMPLES_DIRECTORY = "res/examples/dcase2016_task2_train/"
+EXAMPLES_DIRECTORY = "res/examples/"
 OUT_DIRECTORY = "res/train/"
 SAMPLING_FREQ = 4410
 NOISE_VAR = 0.1
 ROOM_DIM = np.array([10, 10])
 
 
+def download_examples():
+    # Create directory if it does not exist
+    Path(EXAMPLES_DIRECTORY).mkdir(parents=True, exist_ok=True)
+
+    r = requests.get("https://archive.org/download/dcase2016_task2_train_dev/dcase2016_task2_train_dev.zip", stream=True)
+    z = zipfile.ZipFile(io.BytesIO(r.content))
+    z.extractall(EXAMPLES_DIRECTORY)
+
+
 def load_examples(downsample_ratio=10):
     examples = list()
 
-    for file in os.listdir(EXAMPLES_DIRECTORY):
+    directory = os.path.join(EXAMPLES_DIRECTORY, "dcase2016_task2_train_dev", "dcase2016_task2_train")
+
+    for file in os.listdir(directory):
         filename = os.fsdecode(file)
         if filename.endswith(".wav"): 
             wav_name = os.path.join(EXAMPLES_DIRECTORY, filename)
@@ -52,7 +63,6 @@ def load_microphones():
     microphone_3D_locations = np.array(protocol['geometry']['microphones']['locations'])
     top_mics = np.isclose(microphone_3D_locations[:,2], 0.06123724)
     return microphone_3D_locations[top_mics, :2]
-
 
 
 def dataset_generator(examples, max_sources=4, n_samples=1000):
@@ -86,7 +96,9 @@ def dataset_generator(examples, max_sources=4, n_samples=1000):
 
     return generator
 
+
 if __name__ == "__main__":
+    download_examples()
     Path(OUT_DIRECTORY).mkdir(parents=True, exist_ok=True)
 
     examples = load_examples()
