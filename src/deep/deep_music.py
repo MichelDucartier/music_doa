@@ -51,12 +51,11 @@ class NeuralNet(nn.Module):
             nn.Linear(256, 256),
             nn.GELU(),
             nn.Linear(256, n_outputs),
-            nn.Sigmoid()
         )
 
     def forward(self, x):
         y = self.linear_relu_stack(x)
-        return y * 2 * np.pi
+        return y
     
 
 class DeepMUSIC(nn.Module):
