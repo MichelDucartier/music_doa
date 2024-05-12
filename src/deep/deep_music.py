@@ -15,13 +15,13 @@ from music import SOUND_SPEED
 def torch_spectrum_function(noise_eigenvectors, mic_locations, main_frequency, n_thetas):
     wavelength = SOUND_SPEED / main_frequency
 
-    a = torch.tensor([torch.tensor([np.cos(theta), np.sin(theta)]) for theta in np.linspace(0, 2 * np.pi, n_thetas)])
-    atheta = torch.exp(-2j * np.pi / wavelength * torch.dot(mic_locations, a))
+    a = torch.tensor([[np.cos(theta), np.sin(theta)] for theta in np.linspace(0, 2 * np.pi, n_thetas)])
+    atheta = torch.exp(-2j * np.pi / wavelength * torch.matmul(mic_locations, a.T))
 
-    temp = torch.dot(atheta.conj(), noise_eigenvectors)
+    temp = torch.matmul(atheta.conj().type(torch.cfloat).T, noise_eigenvectors.type(torch.cfloat))
 
-    return 1 / torch.linalg.norm(temp)
-
+    return 1 / torch.linalg.norm(temp, dim=1)
+    
 
 def rmspe_loss(estimated_thetas, true_thetas, n_sources):
     estimated_thetas = estimated_thetas[: n_sources]
@@ -31,12 +31,12 @@ def rmspe_loss(estimated_thetas, true_thetas, n_sources):
 
     # For each permutation, we take 
     for permutation in itertools.permutations(range(n_sources)):
-        current_loss = torch.linalg.norm(estimated_thetas[permutation] - true_thetas) ** 2
+        current_loss = torch.linalg.norm(estimated_thetas[[permutation]] - true_thetas) ** 2
 
         if current_loss < min_loss:
             min_loss = current_loss
 
-    return (1 / len(n_sources)) * torch.sqrt(min_loss)
+    return (1 / n_sources) * torch.sqrt(min_loss)
 
 
 class NeuralNet(nn.Module):
@@ -77,20 +77,21 @@ class DeepMUSIC(nn.Module):
 
     def forward(self, samples, n_sources):
         ## Normalize samples + fft
-        samples = ((samples.T - torch.mean(samples, dim=1).T) / torch.std(samples, dim=1).T).T
+        samples = (samples - torch.mean(samples, dim=1, keepdim=True)) / torch.std(samples, dim=1, keepdim=True)
         fft = torch.fft.fft(samples)
         
         main_frequency = torch.argmax(torch.norm(fft[: len(fft) // 2])) * self.conf["fs"] / len(fft)
 
         # Forward pass through the recurrent neural network
-        output = self.gru(samples)
+        _, output = self.gru(samples.T)
         output = self.post_gru(output)
+        output = torch.flatten(output)
 
         # Compute outer product
         covariance = torch.outer(output, torch.conj(output))
 
         # Compute eigendecomposition
-        eigenvalues, eigenvectors = torch.symeig(covariance, eigenvectors=True)
+        eigenvalues, eigenvectors = torch.linalg.eigh(covariance, UPLO='U')
 
         # Sort eigenvalues and eigenvectors
         indices = torch.argsort(eigenvalues)
