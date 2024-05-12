@@ -7,7 +7,7 @@ import itertools
 from torch.autograd import Variable
 
 import sys
-sys.append("src/")
+sys.path.append("src/")
 
 from music import SOUND_SPEED
 
@@ -41,6 +41,7 @@ def rmspe_loss(estimated_thetas, true_thetas, n_sources):
 
 class NeuralNet(nn.Module):
     def __init__(self, n_inputs: int, n_outputs: int):
+        super(NeuralNet, self).__init__()
         self.linear_relu_stack = nn.Sequential(
             nn.Linear(n_inputs, 256),
             nn.GELU(),
@@ -62,8 +63,8 @@ class DeepMUSIC(nn.Module):
         self.mic_locations = mic_locations
         self.conf = conf
 
-        n_freq = (conf["npperseg"] // 2) + 1 
-        self.gru = nn.GRU(input_size=self.n_mics * n_freq,
+        # n_freq = (conf["npperseg"] // 2) + 1 
+        self.gru = nn.GRU(input_size=self.n_mics,
                           hidden_size=self.conf["gru_hidden_size"])
         
         self.post_gru = nn.Linear(in_features=self.conf["gru_hidden_size"], 
@@ -76,7 +77,7 @@ class DeepMUSIC(nn.Module):
 
     def forward(self, samples, n_sources):
         ## Normalize samples + fft
-        samples = ((samples.T - np.mean(samples, axis=1).T) / np.std(samples, axis=1).T).T
+        samples = ((samples.T - torch.mean(samples, dim=1).T) / torch.std(samples, dim=1).T).T
         fft = torch.fft.fft(samples)
         
         main_frequency = torch.argmax(fft[: len(fft) // 2]) * self.conf["fs"] / len(fft)

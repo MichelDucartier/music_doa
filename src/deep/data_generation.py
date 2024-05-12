@@ -105,5 +105,5 @@ if __name__ == "__main__":
     n_splits = 5
 
     for split in range(n_splits):
-        ds = Dataset.from_generator(dataset_generator(examples, n_samples=100))
+        ds = Dataset.from_generator(dataset_generator(examples, n_samples=100)).with_format("np")
         ds.save_to_disk(os.path.join(OUT_DIRECTORY, f"split{split}", "dataset"))
