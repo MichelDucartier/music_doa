@@ -73,8 +73,6 @@ def dataset_generator(examples, max_sources=4, n_samples=1000):
 
         assert max_sources <= len(mics_coords)
 
-        X = []
-        Y = []
         for _ in tqdm(range(n_samples)):
             aroom = pra.ShoeBox(ROOM_DIM, fs=SAMPLING_FREQ, max_order=0, sigma2_awgn=NOISE_VAR)
             aroom.add_microphone_array(pra.MicrophoneArray(mics_coords.T, aroom.fs))

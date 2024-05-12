@@ -11,11 +11,13 @@ sys.path.append("src/")
 
 from music import SOUND_SPEED
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
 def torch_spectrum_function(noise_eigenvectors, mic_locations, main_frequency, n_thetas):
     wavelength = SOUND_SPEED / main_frequency
 
-    a = torch.tensor([[np.cos(theta), np.sin(theta)] for theta in np.linspace(0, 2 * np.pi, n_thetas)])
+    a = torch.tensor([[np.cos(theta), np.sin(theta)] for theta in np.linspace(0, 2 * np.pi, n_thetas)]).to(device)
     atheta = torch.exp(-2j * np.pi / wavelength * torch.matmul(mic_locations, a.T))
 
     temp = torch.matmul(atheta.conj().type(torch.cfloat).T, noise_eigenvectors.type(torch.cfloat))
@@ -31,7 +33,8 @@ def rmspe_loss(estimated_thetas, true_thetas, n_sources):
 
     # For each permutation, we take 
     for permutation in itertools.permutations(range(n_sources)):
-        current_loss = torch.linalg.norm(estimated_thetas[[permutation]] - true_thetas) ** 2
+        current_loss = torch.linalg.norm(torch.cos(estimated_thetas[[permutation]] - true_thetas)) \
+            + torch.linalg.norm(torch.sin(estimated_thetas[[permutation]] - true_thetas))
 
         if current_loss < min_loss:
             min_loss = current_loss
@@ -48,11 +51,12 @@ class NeuralNet(nn.Module):
             nn.Linear(256, 256),
             nn.GELU(),
             nn.Linear(256, n_outputs),
+            nn.Sigmoid()
         )
 
     def forward(self, x):
         y = self.linear_relu_stack(x)
-        return y
+        return y * 2 * np.pi
     
 
 class DeepMUSIC(nn.Module):
