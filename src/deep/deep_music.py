@@ -18,12 +18,12 @@ def torch_spectrum_function(noise_eigenvectors, mic_locations, main_frequency, n
     wavelength = SOUND_SPEED / main_frequency
 
     a = torch.tensor([[np.cos(theta), np.sin(theta)] for theta in np.linspace(0, 2 * np.pi, n_thetas)]).to(device)
-    atheta = torch.exp(-2j * np.pi / wavelength * torch.matmul(mic_locations, a.T))
+    atheta = torch.exp(-2j * np.pi / wavelength * torch.matmul(mic_locations, a.T).type(torch.cfloat))
 
     temp = torch.matmul(atheta.conj().type(torch.cfloat).T, noise_eigenvectors.type(torch.cfloat))
+    spectrum = 1 / torch.linalg.norm(temp, dim=1, )
 
-    return 1 / torch.linalg.norm(temp, dim=1)
-    
+    return spectrum
 
 def rmspe_loss(estimated_thetas, true_thetas, n_sources):
     estimated_thetas = estimated_thetas[: n_sources]
@@ -70,8 +70,8 @@ class DeepMUSIC(nn.Module):
         self.gru = nn.GRU(input_size=self.n_mics,
                           hidden_size=self.conf["gru_hidden_size"])
         
-        self.post_gru = nn.Linear(in_features=self.conf["gru_hidden_size"], 
-                                  out_features=self.n_mics)
+        self.post_gru = NeuralNet(self.conf["gru_hidden_size"], 
+                                  self.n_mics)
     
         # Input size is the resolution of our spectrum function
         # Output can't be larger than the number of microphones
@@ -81,9 +81,9 @@ class DeepMUSIC(nn.Module):
     def forward(self, samples, n_sources):
         ## Normalize samples + fft
         samples = (samples - torch.mean(samples, dim=1, keepdim=True)) / torch.std(samples, dim=1, keepdim=True)
-        fft = torch.fft.fft(samples)
-        
-        main_frequency = torch.argmax(torch.norm(fft[: len(fft) // 2])) * self.conf["fs"] / len(fft)
+        fft = torch.fft.fft(samples[0])
+
+        main_frequency = torch.argmax(abs(fft[: len(fft) // 2])) * self.conf["fs"] / len(fft)
 
         # Forward pass through the recurrent neural network
         _, output = self.gru(samples.T)
@@ -105,6 +105,6 @@ class DeepMUSIC(nn.Module):
 
         spectrum_values = torch_spectrum_function(noise_eigenvectors, self.mic_locations, main_frequency, self.conf["n_thetas"])
 
-        return self.neural_net(spectrum_values)
+        return self.neural_net(spectrum_values.clone().detach()), spectrum_values
         
 
