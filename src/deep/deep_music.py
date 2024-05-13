@@ -33,8 +33,8 @@ def rmspe_loss(estimated_thetas, true_thetas, n_sources):
 
     # For each permutation, we take 
     for permutation in itertools.permutations(range(n_sources)):
-        current_loss = torch.linalg.norm(torch.cos(estimated_thetas[[permutation]] - true_thetas)) \
-            + torch.linalg.norm(torch.sin(estimated_thetas[[permutation]] - true_thetas))
+        current_loss = torch.linalg.norm(torch.cos(estimated_thetas[[permutation]]) - torch.cos(true_thetas)) \
+            + torch.linalg.norm(torch.sin(estimated_thetas[[permutation]]) - torch.sin(true_thetas))
 
         if current_loss < min_loss:
             min_loss = current_loss
