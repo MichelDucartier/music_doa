@@ -65,6 +65,15 @@ def load_microphones():
     return microphone_3D_locations[top_mics, :2]
 
 
+def are_too_close(doas, threshold=20):
+    for i in range(len(doas)):
+        for j in range(i+1, len(doas)):
+            if abs(doas[i] - doas[j]) < threshold:
+                return True
+    
+    return False
+
+
 def dataset_generator(examples, max_sources=4, n_samples=1000):
 
     def generator():
@@ -78,8 +87,12 @@ def dataset_generator(examples, max_sources=4, n_samples=1000):
             aroom.add_microphone_array(pra.MicrophoneArray(mics_coords.T, aroom.fs))
 
             n_sources = random.randrange(1, max_sources)
-            doas = np.random.uniform(0, 360, size=n_sources)
 
+            while True:
+                doas = np.random.uniform(0, 360, size=n_sources)
+                if not are_too_close(doas):
+                    break
+            
             for doa in doas:
                 # Generate a distance at random, not too close to microphones
                 distance = np.random.uniform(ROOM_DIM / 4, ROOM_DIM / 2)

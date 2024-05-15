@@ -39,7 +39,20 @@ def rmspe_loss(estimated_thetas, true_thetas, n_sources):
         if current_loss < min_loss:
             min_loss = current_loss
 
-    return (1 / n_sources) * torch.sqrt(min_loss)
+    return (1 / n_sources) * min_loss
+
+
+def spectrum_loss(estimated_spectrum, true_thetas):
+    peak_indices = torch.round((true_thetas / (2 * np.pi)) * len(estimated_spectrum))
+
+    ideal_spectrum = torch.zeros(size=estimated_spectrum.shape)
+
+    window_len = int(0.01 * len(estimated_spectrum))
+    max_value = torch.max(estimated_spectrum)
+    for peak_index in peak_indices:
+        ideal_spectrum[range(peak_index - window_len // 2, peak_index + window_len // 2)] = torch.signal.windows.gaussian(window_len) * max_value
+
+    return (1 / len(estimated_spectrum)) * torch.dot(ideal_spectrum, estimated_spectrum)
 
 
 class NeuralNet(nn.Module):
@@ -70,8 +83,7 @@ class DeepMUSIC(nn.Module):
         self.gru = nn.GRU(input_size=self.n_mics,
                           hidden_size=self.conf["gru_hidden_size"])
         
-        self.post_gru = NeuralNet(self.conf["gru_hidden_size"], 
-                                  self.n_mics)
+        self.post_gru = nn.Linear(self.conf["gru_hidden_size"], self.n_mics)
     
         # Input size is the resolution of our spectrum function
         # Output can't be larger than the number of microphones
@@ -106,5 +118,32 @@ class DeepMUSIC(nn.Module):
         spectrum_values = torch_spectrum_function(noise_eigenvectors, self.mic_locations, main_frequency, self.conf["n_thetas"])
 
         return self.neural_net(spectrum_values.clone().detach()), spectrum_values
+
+
+class DeepSourcesClassifier(nn.Module):
+    def __init__(self, mic_locations: List | np.ndarray, conf: Dict[str, Any]):
+        super(DeepMUSIC, self).__init__()
+
+        self.n_mics = len(mic_locations)
+        self.mic_locations = mic_locations
+        self.conf = conf
+
+        # n_freq = (conf["npperseg"] // 2) + 1 
+        self.gru = nn.GRU(input_size=self.n_mics,
+                          hidden_size=self.conf["gru_hidden_size"])
         
+        self.classifier = nn.Sequential(
+            nn.Linear(self.conf["gru_hidden_size"], 256),
+            nn.GELU(),
+            nn.Linear(256, self.n_mics),
+            nn.LogSoftmax()
+        )
+
+
+    def forward(self, samples):
+        # Forward pass through the recurrent neural network
+        _, output = self.gru(samples.T)
+        output = self.classifier(output)
+
+        return output
 
