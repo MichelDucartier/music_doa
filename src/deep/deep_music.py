@@ -21,7 +21,7 @@ def torch_spectrum_function(noise_eigenvectors, mic_locations, main_frequency, n
     atheta = torch.exp(-2j * np.pi / wavelength * torch.matmul(mic_locations, a.T).type(torch.cfloat))
 
     temp = torch.matmul(atheta.conj().type(torch.cfloat).T, noise_eigenvectors.type(torch.cfloat))
-    spectrum = 1 / torch.linalg.norm(temp, dim=1, )
+    spectrum = 1 / torch.linalg.norm(temp, dim=1)
 
     return spectrum
 
@@ -122,27 +122,36 @@ class DeepMUSIC(nn.Module):
 
 class DeepSourcesClassifier(nn.Module):
     def __init__(self, mic_locations: List | np.ndarray, conf: Dict[str, Any]):
-        super(DeepMUSIC, self).__init__()
+        super(DeepSourcesClassifier, self).__init__()
 
         self.n_mics = len(mic_locations)
         self.mic_locations = mic_locations
         self.conf = conf
 
         # n_freq = (conf["npperseg"] // 2) + 1 
-        self.gru = nn.GRU(input_size=self.n_mics,
+        self.gru = nn.GRU(input_size=self.n_mics * 2,
                           hidden_size=self.conf["gru_hidden_size"])
         
         self.classifier = nn.Sequential(
-            nn.Linear(self.conf["gru_hidden_size"], 256),
+            nn.Linear(self.conf["gru_hidden_size"] * 3, 256),
             nn.GELU(),
-            nn.Linear(256, self.n_mics),
-            nn.LogSoftmax()
+            nn.Linear(256, self.conf["max_sources"]),
+            nn.Softmax()
         )
 
 
     def forward(self, samples):
         # Forward pass through the recurrent neural network
-        _, output = self.gru(samples.T)
+        samples = samples.T.type(torch.cfloat)
+        samples = torch.view_as_real(samples)
+        samples = torch.flatten(samples, start_dim=1)
+        
+        hidden_layers, _ = self.gru(samples)
+        first_hidden = hidden_layers[0]
+        middle_hidden = hidden_layers[len(hidden_layers) // 2]
+        last_hidden = hidden_layers[-1]
+
+        output = torch.concatenate((first_hidden, middle_hidden, last_hidden))
         output = self.classifier(output)
 
         return output
