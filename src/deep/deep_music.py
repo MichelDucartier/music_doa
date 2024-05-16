@@ -80,10 +80,10 @@ class DeepMUSIC(nn.Module):
         self.conf = conf
 
         # n_freq = (conf["npperseg"] // 2) + 1 
-        self.gru = nn.GRU(input_size=self.n_mics,
+        self.gru = nn.GRU(input_size=self.n_mics * 2,
                           hidden_size=self.conf["gru_hidden_size"])
         
-        self.post_gru = nn.Linear(self.conf["gru_hidden_size"], self.n_mics)
+        self.post_gru = nn.Linear(self.conf["gru_hidden_size"], self.n_mics * self.n_mics * 2)
     
         # Input size is the resolution of our spectrum function
         # Output can't be larger than the number of microphones
@@ -100,10 +100,8 @@ class DeepMUSIC(nn.Module):
         # Forward pass through the recurrent neural network
         _, output = self.gru(samples.T)
         output = self.post_gru(output)
-        output = torch.flatten(output)
-
-        # Compute outer product
-        covariance = torch.outer(output, torch.conj(output))
+        output = torch.reshape(output, (self.n_mics, self.n_mics, 2))
+        covariance = torch.view_as_complex(output)
 
         # Compute eigendecomposition
         eigenvalues, eigenvectors = torch.linalg.eigh(covariance, UPLO='U')
