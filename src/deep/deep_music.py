@@ -33,8 +33,11 @@ def rmspe_loss(estimated_thetas, true_thetas, n_sources):
 
     # For each permutation, we take 
     for permutation in itertools.permutations(range(n_sources)):
-        current_loss = torch.linalg.norm(torch.cos(estimated_thetas[[permutation]]) - torch.cos(true_thetas)) \
-            + torch.linalg.norm(torch.sin(estimated_thetas[[permutation]]) - torch.sin(true_thetas))
+        # current_loss = torch.linalg.norm(torch.cos(estimated_thetas[[permutation]]) - torch.cos(true_thetas)) \
+        #     + torch.linalg.norm(torch.sin(estimated_thetas[[permutation]]) - torch.sin(true_thetas))
+        diff = (estimated_thetas[[permutation]] - true_thetas + np.pi / 2) % np.pi - np.pi / 2
+        current_loss = torch.linalg.norm(diff)
+
 
         if current_loss < min_loss:
             min_loss = current_loss
@@ -98,16 +101,20 @@ class DeepMUSIC(nn.Module):
         main_frequency = torch.argmax(abs(fft[: len(fft) // 2])) * self.conf["fs"] / len(fft)
 
         # Forward pass through the recurrent neural network
-        _, output = self.gru(samples.T)
+        samples = samples.T.type(torch.cfloat)
+        samples = torch.view_as_real(samples)
+        samples = torch.flatten(samples, start_dim=1)
+
+        _, output = self.gru(samples)
         output = self.post_gru(output)
         output = torch.reshape(output, (self.n_mics, self.n_mics, 2))
         covariance = torch.view_as_complex(output)
 
         # Compute eigendecomposition
-        eigenvalues, eigenvectors = torch.linalg.eigh(covariance, UPLO='U')
+        eigenvalues, eigenvectors = torch.linalg.eig(covariance)
 
         # Sort eigenvalues and eigenvectors
-        indices = torch.argsort(eigenvalues)
+        indices = torch.argsort(torch.abs(eigenvalues))
         eigenvalues, eigenvectors = eigenvalues[indices], eigenvectors[indices]
 
         signal_eigenvalues, signal_eigenvectors = eigenvalues[-n_sources :], eigenvectors[:, -n_sources :]
@@ -126,7 +133,6 @@ class DeepSourcesClassifier(nn.Module):
         self.mic_locations = mic_locations
         self.conf = conf
 
-        # n_freq = (conf["npperseg"] // 2) + 1 
         self.gru = nn.GRU(input_size=self.n_mics * 2,
                           hidden_size=self.conf["gru_hidden_size"])
         
