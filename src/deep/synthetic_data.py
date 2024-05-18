@@ -26,7 +26,7 @@ from sklearn import utils
 from tqdm import tqdm
 
 from data_generation import load_microphones
-
+import random
 
 # set random seed
 np.random.seed(42)
@@ -49,7 +49,6 @@ var_noise = 1
 doa = np.pi * (np.random.rand(d) - 1/2)   # random source directions in [-pi/2, pi/2]
 p = np.sqrt(1) * (np.random.randn(d) + np.random.randn(d) * 1j)    # random source powers
 
-# array = np.linspace(0, m, m, endpoint=False)   # array element positions
 mics_coords = load_microphones()
 
 
@@ -132,19 +131,30 @@ def create_dataset(name, size, coherent=False, save=True):
     """
     X = np.zeros((size, m, snapshots)) + 1j * np.zeros((size, m, snapshots))
     Thetas = np.zeros((size, d))
+    n_sources_list = np.zeros(size)
+
     for i in tqdm(range(size)):
+        
         thetas = np.pi * (np.random.rand(d) - 1/2)  # random source directions
-        if coherent: X[i] = construct_coherent_signal(thetas)[0]
-        else: X[i] = construct_signal(thetas)[0]
+        
+        # Random number of sources
+        n_sources = random.randrange(1, d)
+        n_sources_list[i] = n_sources
+        
+        thetas[n_sources :] = np.nan
+
+        if coherent: X[i] = construct_coherent_signal(thetas[: n_sources])[0]
+        else: X[i] = construct_signal(thetas[: n_sources])[0]
         Thetas[i] = thetas
 
     if save:
         hf = h5py.File('data/' + name + '.h5', 'w')
         hf.create_dataset('X', data=X)
         hf.create_dataset('Y', data=Thetas)
+        hf.create_dataset('n_sources', data=n_sources_list)
         hf.close()
 
-    return X, Thetas
+    return X, Thetas, n_sources_list
 
 
 #**************************#
@@ -223,4 +233,7 @@ if __name__ == "__main__":
 
     # create_res_cap_dataset('m8/res0.20_l200_snr10_10k', 10000, 0.20)
 
-    create_dataset('m8/d5_l200_snr10_10k_c', 10000, coherent=True)
+    create_dataset('coherent_dataset', 1000, coherent=True)
+    create_dataset('non_coherent_dataset', 1000, coherent=False)
+
+    create_mixed_dataset("mixed_dataset", "data/coherent_dataset", "data/non_coherent_dataset")
