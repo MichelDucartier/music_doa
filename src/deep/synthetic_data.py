@@ -24,8 +24,8 @@ import tensorflow.keras.backend as K
 from scipy import signal
 from sklearn import utils
 from tqdm import tqdm
+import json
 
-from data_generation import load_microphones
 import random
 
 # set random seed
@@ -49,13 +49,23 @@ var_noise = 1
 doa = np.pi * (np.random.rand(d) - 1/2)   # random source directions in [-pi/2, pi/2]
 p = np.sqrt(1) * (np.random.randn(d) + np.random.randn(d) * 1j)    # random source powers
 
+
+def load_microphones():
+    with open('../music_doa/last_year/protocol.json') as json_file:  
+        protocol = json.load(json_file)
+        
+    microphone_3D_locations = np.array(protocol['geometry']['microphones']['locations'])
+    top_mics = np.isclose(microphone_3D_locations[:,2], 0.06123724)
+    microphone_2D_locations = microphone_3D_locations[top_mics, :2]
+
+    return microphone_2D_locations
+
+
 mics_coords = load_microphones()
-
-
 
 angles = np.array((np.linspace(- np.pi/2, np.pi/2, 360, endpoint=False),))   # angle continuum
 
-snapshots = 200
+snapshots = 200    
 
 
 def ULA_action_vector(mics_coords, theta):
@@ -86,7 +96,7 @@ def construct_signal(thetas):
     """
     signal = np.sqrt(var_signal_power) * (10 ** (snr / 10)) * \
              (np.random.randn(d, snapshots) + 1j * np.random.randn(d, snapshots)) + mean_signal_power
-    A = np.array([ULA_action_vector(array, thetas[j]) for j in range(d)])
+    A = np.array([ULA_action_vector(mics_coords, thetas[j]) for j in range(d)])
     noise = np.sqrt(var_noise) * (np.random.randn(m, snapshots) + 1j *
                                   np.random.randn(m, snapshots)) + mean_noise
 
