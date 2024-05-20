@@ -37,7 +37,6 @@ np.random.seed(42)
 #********************#
 
 d = 5   # number of sources
-m = 8   # number of array elements
 snr = 10   # signal to noise ratio
 
 mean_signal_power = 0
@@ -62,6 +61,7 @@ def load_microphones():
 
 
 mics_coords = load_microphones()
+m = len(mics_coords)   # number of array elements
 
 angles = np.array((np.linspace(- np.pi/2, np.pi/2, 360, endpoint=False),))   # angle continuum
 
@@ -94,6 +94,8 @@ def construct_signal(thetas):
 
         @returns -- The measurement vector.
     """
+    d = len(thetas)
+
     signal = np.sqrt(var_signal_power) * (10 ** (snr / 10)) * \
              (np.random.randn(d, snapshots) + 1j * np.random.randn(d, snapshots)) + mean_signal_power
     A = np.array([ULA_action_vector(mics_coords, thetas[j]) for j in range(d)])
@@ -118,9 +120,9 @@ def construct_coherent_signal(thetas):
              (np.random.randn(1, snapshots) + 1j * np.random.randn(1, snapshots)) + mean_signal_power
 
     # all signals receive same amplitude and phase...
-    signal = np.repeat(signal, d, axis=0)
+    signal = np.repeat(signal, len(thetas), axis=0)
 
-    A = np.array([ULA_action_vector(mics_coords, thetas[j]) for j in range(d)])
+    A = np.array([ULA_action_vector(mics_coords, thetas[j]) for j in range(len(thetas))])
     noise = np.sqrt(var_noise) * (np.random.randn(m, snapshots) + 1j *
                                   np.random.randn(m, snapshots)) + mean_noise
 
@@ -141,7 +143,7 @@ def create_dataset(name, size, coherent=False, save=True):
     """
     X = np.zeros((size, m, snapshots)) + 1j * np.zeros((size, m, snapshots))
     Thetas = np.zeros((size, d))
-    n_sources_list = np.zeros(size)
+    n_sources_list = np.zeros((size, 1))
 
     for i in tqdm(range(size)):
         
@@ -182,24 +184,25 @@ def create_mixed_dataset(name, first, second, save=True):
     hf1 = h5py.File(first + '.h5', 'r')
     hf2 = h5py.File(second + '.h5', 'r')
 
-    dataX1 = np.array(hf1.get('X'))
-    dataY1 = np.array(hf1.get('Y'))
+    assert hf1.keys() == hf2.keys()
 
-    dataX2 = np.array(hf2.get('X'))
-    dataY2 = np.array(hf2.get('Y'))
+    data_list = dict()
 
-    dataX = np.concatenate((dataX1, dataX2), axis=1)
-    dataY = np.concatenate((dataY1, dataY2), axis=1)
+    permutations = np.random.permutation(range(len(hf1) + len(hf2)))
 
-    dataX, dataY = utils.shuffle(dataX, dataY)
+    for key in hf1.keys():
+        data_value1 = np.array(hf1.get(key))
+        data_value2 = np.array(hf2.get(key))
+        data_list[key]  = np.stack((data_value1, data_value2))[permutations]
 
     if save:
         hf = h5py.File('data/' + name + '.h5', 'w')
-        hf.create_dataset('X', data=dataX)
-        hf.create_dataset('Y', data=dataY)
+        for key, data in data_list.items():
+            hf.create_dataset(key, data=data)
+
         hf.close()
 
-    return dataX, dataY
+    return data_list
 
 
 #*******************************#
