@@ -29,13 +29,11 @@ def compute_stfd(samples, nperseg, normalized_freq_range):
     for samples_channel in samples:
         if np.iscomplexobj(samples):
             freq, time_intervals, stft = scipy.signal.stft(samples_channel, nperseg=nperseg, return_onesided=False)
-            high_freq_mask = (-normalized_freq_range[1] <= freq) & (freq <= - normalized_freq_range[0])
         else:
             freq, time_intervals, stft = scipy.signal.stft(samples_channel, nperseg=nperseg, return_onesided=True)
-            high_freq_mask = np.full(shape=freq.shape, fill_value=False)
 
         low_freq_mask = (normalized_freq_range[0] <= freq) & (freq <= normalized_freq_range[1])    
-        selected_freq_id = np.argwhere(low_freq_mask | high_freq_mask).flatten()
+        selected_freq_id = np.argwhere(low_freq_mask).flatten()
         stft = stft[selected_freq_id, :]
         
         sources_stft.append(stft)
@@ -92,7 +90,7 @@ def music_with_frequency(samples, n_sources, fs, mics_coords, segment_duration=N
         freq_range = [0, fs]
 
     if segment_duration is None:
-        nperseg = len(samples)
+        nperseg = samples.shape[1]
     else:
         # Number of samples to span the segment duration
         nperseg = segment_duration * fs
@@ -123,7 +121,7 @@ def music_with_frequency(samples, n_sources, fs, mics_coords, segment_duration=N
         if freq == 0:
             continue
         
-        main_frequency = (freq / nperseg) * fs
+        main_frequency = freq
         spectrums.append(general_spectrum_function(noise_eigenvectors, mics_coords.T, main_frequency))
     
     return averaged_spectrum(spectrums)
