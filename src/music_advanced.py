@@ -21,13 +21,21 @@ def compute_stfd(samples, nperseg, normalized_freq_range):
     The space-time-frequency distribution of the samples
     """
     sources_stft = []
+
+    # if samples.dtype == np.complex_:
+        
     
     # Iterate over every microphone    
     for samples_channel in samples:
-        freq, time_intervals, stft = scipy.signal.stft(samples_channel, nperseg=nperseg, return_onesided=False)
-                
-        low_freq_mask = (normalized_freq_range[0] <= freq) & (freq <= normalized_freq_range[1])        
-        selected_freq_id = np.argwhere(low_freq_mask).flatten()
+        if np.iscomplexobj(samples):
+            freq, time_intervals, stft = scipy.signal.stft(samples_channel, nperseg=nperseg, return_onesided=False)
+            high_freq_mask = (-normalized_freq_range[1] <= freq) & (freq <= - normalized_freq_range[0])
+        else:
+            freq, time_intervals, stft = scipy.signal.stft(samples_channel, nperseg=nperseg, return_onesided=True)
+            high_freq_mask = np.full(shape=freq.shape, fill_value=False)
+
+        low_freq_mask = (normalized_freq_range[0] <= freq) & (freq <= normalized_freq_range[1])    
+        selected_freq_id = np.argwhere(low_freq_mask | high_freq_mask).flatten()
         stft = stft[selected_freq_id, :]
         
         sources_stft.append(stft)
