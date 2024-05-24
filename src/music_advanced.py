@@ -24,8 +24,8 @@ def compute_stfd(samples, nperseg, normalized_freq_range):
     
     # Iterate over every microphone    
     for samples_channel in samples:
-        freq, time_intervals, stft = scipy.signal.stft(samples_channel, nperseg=nperseg, return_onesided=True)
-        
+        freq, time_intervals, stft = scipy.signal.stft(samples_channel, nperseg=nperseg, return_onesided=False)
+                
         low_freq_mask = (normalized_freq_range[0] <= freq) & (freq <= normalized_freq_range[1])        
         selected_freq_id = np.argwhere(low_freq_mask).flatten()
         stft = stft[selected_freq_id, :]
@@ -111,7 +111,7 @@ def music_with_frequency(samples, n_sources, fs, mics_coords, segment_duration=N
     
     # Average the spectrum over the frequencies of interest
     spectrums = []
-    for freq in range(freq_range[0], freq_range[1], freq_resolution):
+    for freq in range(int(freq_range[0]), int(freq_range[1]), freq_resolution):
         if freq == 0:
             continue
         

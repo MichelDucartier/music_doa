@@ -70,7 +70,7 @@ def general_spectrum_function(noise_eigenvectors, mic_locations, main_frequency)
     return helper
 
 
-def extract_frequencies(spectrum, n_sources, input_range, resolution=10000):
+def extract_frequencies(spectrum, n_sources, input_range, resolution=10000, return_peak_indices=False):
     """
     Extracts the frequencies at which the spectrum function has its peaks
 
@@ -92,5 +92,9 @@ def extract_frequencies(spectrum, n_sources, input_range, resolution=10000):
     indices = np.argsort(Y[peak_indices])[-n_sources:]  # Sort peak indices by y value and take the top num_peaks    
     estimated_freq = peak_indices[indices]
     
-    return (estimated_freq / resolution) * (input_range[1] - input_range[0]) + input_range[0]
-
+    frequencies = (estimated_freq / resolution) * (input_range[1] - input_range[0]) + input_range[0]
+    
+    if return_peak_indices:
+        return frequencies, estimated_freq
+        
+    return frequencies
