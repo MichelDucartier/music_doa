@@ -6,7 +6,7 @@ import scipy
 
 SOUND_SPEED = 343
     
-def music(samples, n_sources, mic_coords, main_frequency, correlated=False):
+def music(samples, n_sources, mic_coords, main_frequency, correlated=False, verbose=True):
     """
     Computes and returns the estimated spatial spectrum by computing the eigendecomposition of the covariance matrix
     of the samples
@@ -26,9 +26,10 @@ def music(samples, n_sources, mic_coords, main_frequency, correlated=False):
     
     samples = (samples.T - samples.mean(axis=1).T).T
 
-    print('Samples shape:', samples.shape)
     covariance = samples @ samples.conj().T / M
-    print("Covariance shape:", covariance.shape)
+    if verbose:
+        print('Samples shape:', samples.shape)
+        print("Covariance shape:", covariance.shape)
     
     if correlated:
         J = np.flip(np.eye(mic_coords.shape[1]), axis=1)
