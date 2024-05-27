@@ -16,13 +16,7 @@
 #   imports   #
 #*************#
 import h5py
-import matplotlib.pyplot as plt
 import numpy as np
-import tensorflow as tf
-import tensorflow.keras.backend as K
-
-from scipy import signal
-from sklearn import utils
 from tqdm import tqdm
 import json
 from pathlib import Path
@@ -198,7 +192,6 @@ def create_mixed_dataset(name, first, second, save=True):
         data_list[key]  = np.stack((data_value1, data_value2))[permutations]
 
     if save:
-        Path("data/").mkdir(parents=True, exist_ok=True)
         hf = h5py.File('data/' + name + '.h5', 'w')
         for key, data in data_list.items():
             hf.create_dataset(key, data=data)
@@ -248,7 +241,7 @@ if __name__ == "__main__":
     #                                            second='data/c_d2_l200_snr10_1k')
 
     # create_res_cap_dataset('m8/res0.20_l200_snr10_10k', 10000, 0.20)
-
+    Path("data/").mkdir(parents=True, exist_ok=True)
     create_dataset('coherent_dataset', 100000, coherent=True)
     # create_dataset('non_coherent_dataset', 1000, coherent=False)
     # create_mixed_dataset("mixed_dataset", "data/coherent_dataset", "data/non_coherent_dataset")
