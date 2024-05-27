@@ -34,8 +34,6 @@ def rmspe_loss(estimated_thetas, true_thetas, n_sources):
 
     # For each permutation, we take 
     for permutation in itertools.permutations(range(n_sources)):
-        # current_loss = torch.linalg.norm(torch.cos(estimated_thetas[[permutation]]) - torch.cos(true_thetas)) \
-        #     + torch.linalg.norm(torch.sin(estimated_thetas[[permutation]]) - torch.sin(true_thetas))
         diff = (estimated_thetas[[permutation]] - true_thetas + np.pi / 2) % np.pi - np.pi / 2
         current_loss = torch.linalg.norm(diff)
 
@@ -48,14 +46,14 @@ def rmspe_loss(estimated_thetas, true_thetas, n_sources):
 
 
 class NeuralNet(nn.Module):
-    def __init__(self, n_inputs: int, n_outputs: int):
+    def __init__(self, n_inputs: int, n_outputs: int, hidden_size: int):
         super(NeuralNet, self).__init__()
         self.linear_relu_stack = nn.Sequential(
-            nn.Linear(n_inputs, 256),
+            nn.Linear(n_inputs, hidden_size),
             nn.GELU(),
-            nn.Linear(256, 256),
+            nn.Linear(hidden_size, hidden_size),
             nn.GELU(),
-            nn.Linear(256, n_outputs),
+            nn.Linear(hidden_size, n_outputs),
         )
 
     def forward(self, x):
@@ -79,16 +77,11 @@ class DeepMUSIC(nn.Module):
     
         # Input size is the resolution of our spectrum function
         # Output can't be larger than the number of microphones
-        self.neural_net = NeuralNet(self.conf["n_thetas"], self.n_mics)
+        self.neural_net = NeuralNet(self.conf["n_thetas"], self.n_mics, self.conf["peak_finder_hidden_size"])
 
 
     def forward(self, samples, n_sources):
-        ## Normalize samples + fft
-        # samples = (samples - torch.mean(samples, dim=1, keepdim=True)) / torch.std(samples, dim=1, keepdim=True)
-        # fft = torch.fft.fft(samples[0])
-
-        # main_frequency = torch.argmax(abs(fft[: len(fft) // 2])) * self.conf["fs"] / len(fft)
-        wavelength = 2
+        wavelength = self.conf["wavelength"]
 
         # Forward pass through the recurrent neural network
         samples = samples.T.type(torch.cfloat)
