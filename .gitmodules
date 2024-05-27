@@ -1,0 +1,3 @@
+[submodule "DA-MUSIC"]
+	path = DA-MUSIC
+	url = https://github.com/MichelDucartier/DA-MUSIC.git
