@@ -114,3 +114,9 @@ class DeepMUSIC(nn.Module):
 
         return self.neural_net(output), output
 
+
+def predict(model, audio, n_sources):
+  audio = torch.tensor(audio).to(device)
+  estimated_sources, spectrum = model(audio, n_sources)
+  
+  return estimated_sources.cpu().detach().numpy()[: n_sources], spectrum.cpu().detach().numpy()

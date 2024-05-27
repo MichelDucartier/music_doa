@@ -25,11 +25,13 @@ from scipy import signal
 from sklearn import utils
 from tqdm import tqdm
 import json
+from pathlib import Path
+
 
 import random
 
 # set random seed
-np.random.seed(42)
+# np.random.seed(42)
 
 
 #********************#
@@ -150,7 +152,7 @@ def create_dataset(name, size, coherent=False, save=True):
         thetas = np.pi * (np.random.rand(d) - 1/2)  # random source directions
         
         # Random number of sources
-        n_sources = random.randrange(1, d)
+        n_sources = d
         n_sources_list[i] = n_sources
         
         thetas[n_sources :] = np.nan
@@ -196,6 +198,7 @@ def create_mixed_dataset(name, first, second, save=True):
         data_list[key]  = np.stack((data_value1, data_value2))[permutations]
 
     if save:
+        Path("data/").mkdir(parents=True, exist_ok=True)
         hf = h5py.File('data/' + name + '.h5', 'w')
         for key, data in data_list.items():
             hf.create_dataset(key, data=data)
