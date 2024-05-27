@@ -14,8 +14,8 @@ from music import SOUND_SPEED
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-def torch_spectrum_function(noise_eigenvectors, mic_locations, main_frequency, n_thetas):
-    wavelength = SOUND_SPEED / main_frequency
+def torch_spectrum_function(noise_eigenvectors, mic_locations, wavelength, n_thetas):
+    # wavelength = SOUND_SPEED / main_frequency
 
     a = torch.tensor([[np.cos(theta), np.sin(theta)] for theta in np.linspace(0, 2 * np.pi, n_thetas)]).to(device)
     atheta = torch.exp(-2j * np.pi / wavelength * torch.matmul(mic_locations, a.T).type(torch.cfloat))
@@ -83,10 +83,11 @@ class DeepMUSIC(nn.Module):
 
     def forward(self, samples, n_sources):
         ## Normalize samples + fft
-        samples = (samples - torch.mean(samples, dim=1, keepdim=True)) / torch.std(samples, dim=1, keepdim=True)
-        fft = torch.fft.fft(samples[0])
+        # samples = (samples - torch.mean(samples, dim=1, keepdim=True)) / torch.std(samples, dim=1, keepdim=True)
+        # fft = torch.fft.fft(samples[0])
 
-        main_frequency = torch.argmax(abs(fft[: len(fft) // 2])) * self.conf["fs"] / len(fft)
+        # main_frequency = torch.argmax(abs(fft[: len(fft) // 2])) * self.conf["fs"] / len(fft)
+        wavelength = 2
 
         # Forward pass through the recurrent neural network
         samples = samples.T.type(torch.cfloat)
@@ -108,7 +109,7 @@ class DeepMUSIC(nn.Module):
         signal_eigenvalues, signal_eigenvectors = eigenvalues[-n_sources :], eigenvectors[:, -n_sources :]
         noise_eigenvalues, noise_eigenvectors = eigenvalues[: -n_sources], eigenvectors[:, : -n_sources]
 
-        spectrum_values = torch_spectrum_function(noise_eigenvectors, self.mic_locations, main_frequency, self.conf["n_thetas"])
+        spectrum_values = torch_spectrum_function(noise_eigenvectors, self.mic_locations, wavelength, self.conf["n_thetas"])
 
         return self.neural_net(spectrum_values.clone().detach()), spectrum_values
 
