@@ -36,7 +36,7 @@ np.random.seed(42)
 #   initialization   #
 #********************#
 
-d = 5   # number of sources
+d = 2   # number of sources
 snr = 10   # signal to noise ratio
 
 mean_signal_power = 0
@@ -246,7 +246,6 @@ if __name__ == "__main__":
 
     # create_res_cap_dataset('m8/res0.20_l200_snr10_10k', 10000, 0.20)
 
-    create_dataset('coherent_dataset', 1000, coherent=True)
-    create_dataset('non_coherent_dataset', 1000, coherent=False)
-
-    create_mixed_dataset("mixed_dataset", "data/coherent_dataset", "data/non_coherent_dataset")
+    create_dataset('coherent_dataset', 100000, coherent=True)
+    # create_dataset('non_coherent_dataset', 1000, coherent=False)
+    # create_mixed_dataset("mixed_dataset", "data/coherent_dataset", "data/non_coherent_dataset")
