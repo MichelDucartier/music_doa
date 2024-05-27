@@ -46,6 +46,7 @@ def rmspe_loss(estimated_thetas, true_thetas, n_sources):
     return (1 / n_sources) * min_loss
 
 
+
 class NeuralNet(nn.Module):
     def __init__(self, n_inputs: int, n_outputs: int):
         super(NeuralNet, self).__init__()
@@ -92,25 +93,24 @@ class DeepMUSIC(nn.Module):
         # Forward pass through the recurrent neural network
         samples = samples.T.type(torch.cfloat)
         samples = torch.view_as_real(samples)
-        samples = torch.flatten(samples, start_dim=1)
+        samples = torch.flatten(samples, start_dim=-2)
 
         _, output = self.gru(samples)
         output = self.post_gru(output)
         output = torch.reshape(output, (self.n_mics, self.n_mics, 2))
-        covariance = torch.view_as_complex(output)
+        output = torch.view_as_complex(output)
 
         # Compute eigendecomposition
-        eigenvalues, eigenvectors = torch.linalg.eig(covariance)
+        eigenvalues, output = torch.linalg.eig(output)
 
         # Sort eigenvalues and eigenvectors
         indices = torch.argsort(torch.abs(eigenvalues))
-        eigenvalues, eigenvectors = eigenvalues[indices], eigenvectors[indices]
+        eigenvalues, output = eigenvalues[indices], output[indices]
 
-        signal_eigenvalues, signal_eigenvectors = eigenvalues[-n_sources :], eigenvectors[:, -n_sources :]
-        noise_eigenvalues, noise_eigenvectors = eigenvalues[: -n_sources], eigenvectors[:, : -n_sources]
+        signal_eigenvalues, signal_eigenvectors = eigenvalues[-n_sources :], output[:, -n_sources :]
+        noise_eigenvalues, output = eigenvalues[: -n_sources], output[:, : -n_sources]
 
-        spectrum_values = torch_spectrum_function(noise_eigenvectors, self.mic_locations, wavelength, self.conf["n_thetas"])
+        output = torch_spectrum_function(output, self.mic_locations, wavelength, self.conf["n_thetas"])
 
-        return self.neural_net(spectrum_values.clone().detach()), spectrum_values
-
+        return self.neural_net(output), output
 
