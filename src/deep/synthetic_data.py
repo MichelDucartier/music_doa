@@ -156,6 +156,7 @@ def create_dataset(name, size, coherent=False, save=True):
         Thetas[i] = thetas
 
     if save:
+        Path("data/").mkdir(parents=True, exist_ok=True)
         hf = h5py.File('data/' + name + '.h5', 'w')
         hf.create_dataset('X', data=X)
         hf.create_dataset('Y', data=Thetas)
@@ -192,6 +193,7 @@ def create_mixed_dataset(name, first, second, save=True):
         data_list[key]  = np.stack((data_value1, data_value2))[permutations]
 
     if save:
+        Path("data/").mkdir(parents=True, exist_ok=True)
         hf = h5py.File('data/' + name + '.h5', 'w')
         for key, data in data_list.items():
             hf.create_dataset(key, data=data)
@@ -226,6 +228,7 @@ def create_res_cap_dataset(name, size, space, coherent=False, save=True):
         Thetas[i] = thetas
 
     if save:
+        Path("data/").mkdir(parents=True, exist_ok=True)
         hf = h5py.File('data/' + name + '.h5', 'w')
         hf.create_dataset('X', data=X)
         hf.create_dataset('Y', data=Thetas)
