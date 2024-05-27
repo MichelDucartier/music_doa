@@ -1,0 +1,5 @@
+gru_hidden_size: 256
+n_thetas: 1000
+max_sources: 4
+wavelength: 2
+peak_finder_hidden_size: 256
