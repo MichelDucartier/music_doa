@@ -38,7 +38,7 @@ You can find `last_year` work in [this folder](last_year)
 
 You can find 4 different notebooks in the root of this repository:
 
-- `MUSIC_report.ipynb`: Compare the non deep augmented MUSIC, namely standard MUSIC, Hilbert-based MUSIC and STFT-based MUSIC
+- `MUSIC_demo.ipynb`: Compare the non deep augmented MUSIC, namely standard MUSIC, Hilbert-based MUSIC and STFT-based MUSIC
 - `MUSIC_plots.ipynb`: The notebook to generate the plots for the PDF report
 - `MUSIC_ML_training.ipynb`: The notebook to train the Deep Augmented model, this notebook is initially meant to be run with Colab (it will clone this repository by itself), but it can also be used for other setups
 - `MUSIC_ML_inference.ipynb`: This notebook can be used as a demo for the Deep Augmented model inference and benchmark
